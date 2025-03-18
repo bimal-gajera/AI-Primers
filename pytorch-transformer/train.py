@@ -73,7 +73,10 @@ def get_model(config, vocab_src_len, vocab_tgt_len):
     return model
 
 def train_model(config):
-    device = ("cuda" if torch.cuda.is_available() else "cpu")
+    if config["device_mps"] and torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
     Path(config["model_folder"]).mkdir(parents=True, exist_ok=True)

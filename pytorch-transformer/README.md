@@ -1,12 +1,14 @@
 ## Pytorch Transformer from scratch
 
 ### Architecture
-### Training and Inference
-### Attention Score visualization
-### Translation model
+The model is based on the original Transformer architecture from the paper "Attention Is All You Need." 
 
-#### Dataset: Opus book
-English to Italian (future feat: change language)
+The key architectural details:
+* Number of attention heads: 8
+* Number of encoder and decoder blocks: 6
+* Feed forward dimension: 2048
+* Model hidden dimension: 512
+* Dropout rate: 0.1
 
 #### Terms:
 * d_model - dimension of the vector
@@ -17,3 +19,31 @@ English to Italian (future feat: change language)
 
 #### Notes: Modified positional encoding for stable numerical computation
 
+---
+
+### Task: Machine Translation
+
+#### Dataset: Opus books
+
+Dataset Source: https://huggingface.co/datasets/Helsinki-NLP/opus_books
+
+To change the language, modify:
+* config['lang_src']
+* config['lang_tgt']
+
+Note: Check for available language pair on huggingface. Currently using en-it(english to italian).
+
+---
+
+#### Device
+To train on mac, set config['device_mps'] = True
+
+Otherwise, cuda or cpu will be used based on availability.
+
+---
+
+
+### Training and Inference
+### Attention Score visualization
+
+---
