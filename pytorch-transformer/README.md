@@ -31,18 +31,21 @@ To change the language, modify:
 * config['lang_src']
 * config['lang_tgt']
 
-Note: Check for available language pair on huggingface. Currently using en-it(english to italian).
+Note: 
+1. Check for available language pair on huggingface. Currently using en-it(english to italian).
+2. Consider adjusting config['seq_len'] based on the sentence length of your language pair.
 
 ---
-
 #### Device
-To train on mac, set config['device_mps'] = True
+To train on mac using MPS
+
+```python
+config['device_mps'] = True
+```
 
 Otherwise, cuda or cpu will be used based on availability.
 
 ---
-
-
 ### Training and Inference
 ### Attention Score visualization
 
