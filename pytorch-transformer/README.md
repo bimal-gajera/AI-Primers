@@ -46,7 +46,8 @@ config['device_mps'] = True
 Otherwise, cuda or cpu will be used based on availability.
 
 ---
-### Training and Inference
+TODO:
+### Training and Inference guide/ notebook
 ### Attention Score visualization
-
+### Warmup LR Scheduler
 ---
