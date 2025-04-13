@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import math
 
-class InputEmbedding(nn.Module):
+class InputEmbeddings(nn.Module):
     def __init__(self, d_model:int, vocab_size:int):
         super().__init__()
         self.d_model = d_model
@@ -190,7 +190,7 @@ class ProjectionLayer(nn.Module):
 
 
 class Transformer(nn.Module):
-    def __init__(self, encoder:Encoder, decoder:Decoder, src_embed:InputEmbedding, tgt_embed:InputEmbedding, src_pos:PositionalEncoding, tgt_pos:PositionalEncoding, projection_layer:ProjectionLayer, dropout:float) -> None:
+    def __init__(self, encoder:Encoder, decoder:Decoder, src_embed:InputEmbeddings, tgt_embed:InputEmbeddings, src_pos:PositionalEncoding, tgt_pos:PositionalEncoding, projection_layer:ProjectionLayer, dropout:float) -> None:
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -216,8 +216,8 @@ class Transformer(nn.Module):
 
 def build_transformer(src_vocab_size:int, tgt_vocab_size:int, src_seq_len:int, tgt_seq_len:int, d_model:int = 512, N:int = 6, h:int = 8, dropout:float = 0.1, d_ff:int = 2048) -> Transformer:
     # Embedding layer
-    src_embed = InputEmbedding(d_model, src_vocab_size)
-    tgt_embed = InputEmbedding(d_model, tgt_vocab_size)
+    src_embed = InputEmbeddings(d_model, src_vocab_size)
+    tgt_embed = InputEmbeddings(d_model, tgt_vocab_size)
 
     # Positional encoding
     src_pos = PositionalEncoding(d_model, src_seq_len, dropout)

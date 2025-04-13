@@ -46,6 +46,13 @@ config['device_mps'] = True
 Otherwise, cuda or cpu will be used based on availability.
 
 ---
+### preload
+- set `config['preload']` to 
+    - `None` to train from scratch
+    - the epoch number you want to resume training from. Example: `"10"`
+    - `latest` to resume training from the last checkpoint
+
+---
 TODO:
 ### Training and Inference guide/ notebook
 ### Attention Score visualization

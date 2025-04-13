@@ -2,7 +2,7 @@ from pathlib import Path
 
 def get_config():
     return {
-        "batch_size": 8,
+        "batch_size": 16,
         "num_epochs": 20,
         "lr": 0.0001,
         "seq_len": 350,
@@ -18,7 +18,7 @@ def get_config():
         "device_mps": False,
     }
 
-def get_weights_file_path(config, epoch):
+def get_weights_file_path(config, epoch: str):
     model_folder = f"{config['datasource']}_{config['model_folder']}"
     model_filename = f"{config['model_basename']}{epoch}.pt"
     return str(Path('.') / model_folder / model_filename)

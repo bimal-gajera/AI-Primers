@@ -37,9 +37,9 @@ class BilingualDataset(Dataset):
         # Add sos, eos and padding to each sentence
         encoder_num_padding_tokens = self.seq_len - len(encoder_input_tokens) - 2  # 2 for SOS and EOS
         # We will only add <s>, and </s> only on the label
-        decoder_num_padding_tokens = self.seq_len - len(decoder_input_tokens) - 1 # 1 for SOS
+        decoder_num_padding_tokens = self.seq_len - len(decoder_input_tokens) - 1  # 1 for SOS
 
-        # Ensure num of padding tokens is not negative.
+        # Ensure number of padding tokens is not negative.
         if encoder_num_padding_tokens < 0 or decoder_num_padding_tokens < 0:
             raise ValueError("Sentence is too long")
 
@@ -86,5 +86,5 @@ class BilingualDataset(Dataset):
             "decoder_mask": (decoder_input != self.pad_token).unsqueeze(0).int() & causal_mask(decoder_input.size(0)), # (1, seq_len) & (1, seq_len, seq_len)
             "label": label,  # (seq_len)
             "src_text": src_text,
-            "tgt_text": tgt_text
+            "tgt_text": tgt_text,
         }

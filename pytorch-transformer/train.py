@@ -56,7 +56,13 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
 def run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_step, num_examples=2):
     model.eval()
     count = 0
-    console_width = 100
+    
+    try:
+        with os.open('stty size', 'r') as console:
+            _, console_width = console.read().split()
+            console_width = int(console_width)
+    except:
+        console_width = 80
 
     with torch.no_grad():
         for batch in  val_dataloader:
@@ -141,7 +147,7 @@ def train_model(config):
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
-    Path(config["model_folder"]).mkdir(parents=True, exist_ok=True)
+    Path(f"{config['datasource']}_{config['model_folder']}").mkdir(parents=True, exist_ok=True)
 
     train_dataloader, val_dataloader, tokenizer_src, tokenizer_tgt = get_dataset(config)
     model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size())
