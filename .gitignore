@@ -7,5 +7,5 @@ pytorch-transformer/__pycache__
 pytorch-transformer/runs
 pytorch-transformer/tokenizer_en.json
 pytorch-transformer/tokenizer_it.json
-pytorch-transformer/weights
+pytorch-transformer/opus_books_weights
 pytorch-transformer/requirements.txt

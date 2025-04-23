@@ -1,11 +1,15 @@
+import os
 import warnings
+from pathlib import Path
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 from torch.utils.data import random_split, Dataset, DataLoader
+from torch.optim.lr_scheduler import LambdaLR
 
 from dataset import BilingualDataset, causal_mask
 from model import ProjectionLayer, build_transformer
-from config import get_config, get_weights_file_path
+from config import get_config, get_weights_file_path, latest_weights_file_path
 
 from datasets import load_dataset
 from tokenizers import Tokenizer
@@ -13,11 +17,10 @@ from tokenizers.models import WordLevel
 from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 
-from pathlib import Path
-from tqdm import tqdm
-import warnings
+# import torchtext.datasets as datasets
+# import torchmetrics
 
 
 def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_len, device):
@@ -33,29 +36,33 @@ def greedy_decode(model, source, source_mask, tokenizer_src, tokenizer_tgt, max_
     while True:
         if decoder_input.size(1) >= max_len:
             break
-        
+
         # Build mask for target
-        decoder_mask = causal_mask(decoder_input.size(1)).type_as(source).to(device)
+        decoder_mask = causal_mask(decoder_input.size(1)).type_as(source_mask).to(device)
 
         # Calculate the output of the decoder
         out = model.decode(encoder_output, source_mask, decoder_input, decoder_mask)
-        
+
         # Get the next token from the output
         prob = model.project(out[:,-1])
 
         # select the next token with max probability(greedy search)
         _, next_word = torch.max(prob, dim=1)
         decoder_input = torch.cat([decoder_input, torch.empty(1, 1).type_as(source).fill_(next_word.item()).to(device)], dim=1)
-        
-        if next_word.item() == eos_idx:
+
+        if next_word == eos_idx:
             break
-    
+
     return decoder_input.squeeze(0)
 
 
 def run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, max_len, device, print_msg, global_step, num_examples=2):
     model.eval()
     count = 0
+
+    source_texts = []
+    expected = []
+    predicted = []
     
     try:
         with os.open('stty size', 'r') as console:
@@ -70,7 +77,7 @@ def run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, max_len,
             encoder_input = batch['encoder_input'].to(device)
             encoder_mask = batch['encoder_mask'].to(device)
 
-            assert encoder_input.shape[0] == 1, "Batch size must be 1 for validation"
+            assert encoder_input.size(0) == 1, "Batch size must be 1 for validation"
             
             model_output = greedy_decode(model, encoder_input, encoder_mask, tokenizer_src, tokenizer_tgt, max_len, device)
 
@@ -78,13 +85,18 @@ def run_validation(model, val_dataloader, tokenizer_src, tokenizer_tgt, max_len,
             target_text = batch['tgt_text'][0]
             model_out_text = tokenizer_tgt.decode(model_output.detach().cpu().numpy())
 
+            source_texts.append(source_text)
+            expected.append(target_text)
+            predicted.append(model_out_text)
+
             print_msg('-' * console_width)
-            print_msg(f"SOURCE: {source_text}")
-            print_msg(f"TARGET: {target_text}")
-            print_msg(f"PREDICTED: {model_out_text}")
+            print_msg(f"{f'SOURCE: ':>12}{source_text}")
+            print_msg(f"{f'TARGET: ':>12}{target_text}")
+            print_msg(f"{f'PREDICTED: ':>12}{model_out_text}")
             print_msg('-' * console_width)
 
             if count == num_examples:
+                print_msg('-' * console_width)
                 break
 
 
@@ -106,7 +118,7 @@ def get_or_build_tokenizer(config, dataset, language):
     return tokenizer
 
 def get_dataset(config):
-    dataset_raw = load_dataset("opus_books", f'{config["lang_src"]}-{config["lang_tgt"]}', split="train")
+    dataset_raw = load_dataset(f"{config['datasource']}", f"{config['lang_src']}-{config['lang_tgt']}", split='train')
 
     tokenizer_src = get_or_build_tokenizer(config, dataset_raw, config["lang_src"])
     tokenizer_tgt = get_or_build_tokenizer(config, dataset_raw, config["lang_tgt"])
@@ -154,23 +166,29 @@ def train_model(config):
     model.to(device)
 
     # Tensorboard
-    writer = SummaryWriter(config["experiment_name"])
+    # writer = SummaryWriter(config["experiment_name"])
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"], eps=1e-9)
 
     initial_epoch = 0
     global_step = 0
-    if config['preload']:
-        model_filename = get_weights_file_path(config, config['preload'])
+    preload = config['preload']
+    model_filename = latest_weights_file_path(config) if preload == 'latest' else get_weights_file_path(config, preload) if preload else None
+    
+    if model_filename:
         print(f"Preloading model {model_filename}")
         state = torch.load(model_filename)
-        initial_epoch =  state['epoch'] + 1
+        model.load_state_dict(state['model_state_dict'])
+        initial_epoch = state['epoch'] + 1
         optimizer.load_state_dict(state['optimizer_state_dict'])
         global_step = state['global_step']
+    else:
+        print('No model to preload, starting from scratch')
     
     loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
 
     for epoch in range(initial_epoch, config['num_epochs']):
+        # torch.cuda.empty_cache()
         model.train()
         batch_iterator = tqdm(train_dataloader, desc=f"Epoch {epoch:02d}")
 
@@ -190,13 +208,14 @@ def train_model(config):
             loss = loss_fn(proj_output.view(-1, tokenizer_tgt.get_vocab_size()), label.view(-1))
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
 
-            writer.add_scalar('train_loss', loss.item(), global_step)
-            writer.flush()
+            # Log loss
+            # writer.add_scalar('train_loss', loss.item(), global_step)
+            # writer.flush()
 
             loss.backward()
 
             optimizer.step()
-            optimizer.zero_grad()
+            optimizer.zero_grad(set_to_none=True)
 
             global_step += 1
 
@@ -210,7 +229,7 @@ def train_model(config):
             'global_step': global_step
         }, model_filename)
 
-    writer.close()
+    # writer.close()
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")

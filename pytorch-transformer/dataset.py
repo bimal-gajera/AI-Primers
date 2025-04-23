@@ -21,11 +21,11 @@ class BilingualDataset(Dataset):
         self.sos_token = torch.tensor([tokenizer_tgt.token_to_id("[SOS]")], dtype=torch.int64)
         self.eos_token = torch.tensor([tokenizer_tgt.token_to_id("[EOS]")], dtype=torch.int64)
         self.pad_token = torch.tensor([tokenizer_tgt.token_to_id("[PAD]")], dtype=torch.int64)
-    
+
     def __len__(self) -> int:
         return len(self.dataset)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> dict:
         src_target_pair = self.dataset[index]
         src_text = src_target_pair['translation'][self.src_language]
         tgt_text = src_target_pair['translation'][self.tgt_language]
