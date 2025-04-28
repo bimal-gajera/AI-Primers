@@ -2,8 +2,8 @@ from pathlib import Path
 
 def get_config():
     return {
-        "batch_size": 16,
-        "num_epochs": 20,
+        "batch_size": 32,
+        "num_epochs": 30,
         "lr": 0.0001,
         "seq_len": 350,
         "d_model": 512,
@@ -14,7 +14,7 @@ def get_config():
         "model_basename": "tmodel_",
         "preload": "latest",
         "tokenizer_file": "tokenizer_{0}.json",
-        "experiment_name": "runs/tmodel",
+        "experiment_name": "transformer_MT",
         "device_mps": False,
     }
 

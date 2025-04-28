@@ -17,7 +17,7 @@ from tokenizers.models import WordLevel
 from tokenizers.trainers import WordLevelTrainer
 from tokenizers.pre_tokenizers import Whitespace
 
-# from torch.utils.tensorboard import SummaryWriter
+import wandb
 
 # import torchtext.datasets as datasets
 # import torchmetrics
@@ -165,8 +165,8 @@ def train_model(config):
     model = get_model(config, tokenizer_src.get_vocab_size(), tokenizer_tgt.get_vocab_size())
     model.to(device)
 
-    # Tensorboard
-    # writer = SummaryWriter(config["experiment_name"])
+    # Wandb
+    wandb.init(project=config["experiment_name"], config=config)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=config["lr"], eps=1e-9)
 
@@ -185,7 +185,7 @@ def train_model(config):
     else:
         print('No model to preload, starting from scratch')
     
-    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_src.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
+    loss_fn = nn.CrossEntropyLoss(ignore_index=tokenizer_tgt.token_to_id("[PAD]"), label_smoothing=0.1).to(device)
 
     for epoch in range(initial_epoch, config['num_epochs']):
         # torch.cuda.empty_cache()
@@ -209,13 +209,15 @@ def train_model(config):
             batch_iterator.set_postfix({"loss": f"{loss.item():6.3f}"})
 
             # Log loss
-            # writer.add_scalar('train_loss', loss.item(), global_step)
-            # writer.flush()
+            wandb.log({"train_loss": loss.item(), "step": global_step})
 
             loss.backward()
 
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
+            
+            # Add gradient clipping
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
             global_step += 1
 
@@ -228,8 +230,6 @@ def train_model(config):
             'optimizer_state_dict': optimizer.state_dict(),
             'global_step': global_step
         }, model_filename)
-
-    # writer.close()
 
 if __name__ == "__main__":
     warnings.filterwarnings("ignore")

@@ -44,13 +44,12 @@ class LayerNormalization(nn.Module):
         self.eps = eps
         self.alpha = nn.Parameter(torch.ones(features)) # multiplicative
         self.bias = nn.Parameter(torch.zeros(features)) # additive
-    
+
     def forward(self, x):
         mean = x.mean(dim=-1, keepdim=True)
-        var = x.var(dim=-1, keepdim=True)
+        var = x.var(dim=-1, keepdim=True, unbiased=False)
         return self.alpha * (x - mean) / torch.sqrt(var + self.eps) + self.bias
-        # std = x.std(dim = -1, keepdim = True)
-        # return self.alpha * (x - mean) / (std + self.eps) + self.bias
+
 
 
 class FeedForwardBlock(nn.Module):
@@ -88,7 +87,7 @@ class MultiHeadAttention(nn.Module):
         attention_scores = (query @ key.transpose(-2, -1)) / math.sqrt(d_k)
 
         if mask is not None:
-            attention_scores.masked_fill(mask ==0, -1e9)
+            attention_scores.masked_fill_(mask ==0, -1e9)
         attention_scores = attention_scores.softmax(dim=-1) # (Batch, h, seq_len, seq_len)
 
         if dropout is not None:
@@ -124,7 +123,7 @@ class ResidualConnection(nn.Module):
         self.norm = LayerNormalization(features)
     
     def forward(self, x, sublayer):
-        return self.norm(x + self.dropout(sublayer(x)))
+        return x + self.dropout(sublayer(self.norm(x)))
 
 
 class EncoderBlock(nn.Module):

@@ -9,3 +9,5 @@ pytorch-transformer/tokenizer_en.json
 pytorch-transformer/tokenizer_it.json
 pytorch-transformer/opus_books_weights
 pytorch-transformer/requirements.txt
+pytorch-transformer/wandb
+pytorch-transformer/playground.ipynb
